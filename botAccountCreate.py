@@ -1,3 +1,5 @@
+import random
+from tkinter.tix import Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
@@ -10,26 +12,35 @@ import fakeMail as email
 import time
 import argparse
 
-args = parser.parse_args()
-ua = UserAgent()
-userAgent = ua.random
-print(userAgent)
+parser = argparse.ArgumentParser()
 
-
-#replace 'your path here' with your chrome binary absolute path
-driver = webdriver.Chrome(r'your path here')
+# Connect to the Selenium server
+options = webdriver.ChromeOptions()
+driver = webdriver.Remote(
+    command_executor='http://localhost:4444/wd/hub',
+    options=options
+)
 
 #saves the login & pass into accounts.txt file.
 acc = open("accounts.txt", "a")
 
-driver.get("https://www.instagram.com/accounts/emailsignup/")
-time.sleep(8)
-try:
-    cookie = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH,
-                                                                         '/html/body/div[3]/div/div/button[1]'))).click()
-except:
-	pass
 name = account.username()
+
+# Visit Instagram's homepage
+driver.get("https://www.instagram.com")
+time.sleep(5)
+
+# Wait for the page to load
+driver.implicitly_wait(10)  # Waits up to 10 seconds
+
+# Locate and click the anchor tag with the href "/accounts/emailsignup/?"
+try:
+    signup_link = driver.find_element(By.CSS_SELECTOR, 'a[href="/accounts/emailsignup/"]')
+    signup_link.click()
+    print("Navigated to the signup page.")
+except Exception as e:
+    print("Could not find the signup link:", e)
+
 
 #Fill the email value
 email_field = driver.find_element_by_name('emailOrPhone')
@@ -56,21 +67,61 @@ print(name+":"+acc_password, file=acc)
 
 acc.close()
 
-WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='react-root']/section/main/div/div/div[1]/div/form/div[7]/div/button"))).click()
-
+sign_up_button = WebDriverWait(driver, 30).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[text()='Sign up' and @type='submit']"))
+    )
+sign_up_button.click()
 time.sleep(8)
 
-#Birthday verification
-driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/div/div[1]/div/div[4]/div/div/span/span[1]/select").click()
-WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='react-root']/section/main/div/div/div[1]/div/div[4]/div/div/span/span[1]/select/option[4]"))).click()
+# Generate a random date before 2004
+year = random.randint(1980, 2003)  # Random year between 1900 and 2003
+month = random.randint(1, 12)  # Random month between 1 and 12
+# Days vary based on the month
+if month in [1, 3, 5, 7, 8, 10, 12]:
+    day = random.randint(1, 31)  # 31 days in these months
+elif month == 2:
+    # Check for leap year to determine the number of days in February
+    if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
+        day = random.randint(1, 29)  # 29 days in February if leap year
+    else:
+        day = random.randint(1, 28)  # 28 days in February if not leap year
+else:
+    day = random.randint(1, 30)  # 30 days in these months
 
-driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/div/div[1]/div/div[4]/div/div/span/span[2]/select").click()
-WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='react-root']/section/main/div/div/div[1]/div/div[4]/div/div/span/span[2]/select/option[10]"))).click()
+print(f"Selected random date: {month}/{day}/{year}")
 
-driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/div/div[1]/div/div[4]/div/div/span/span[3]/select").click()
-WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='react-root']/section/main/div/div/div[1]/div/div[4]/div/div/span/span[3]/select/option[27]"))).click()
+try:
+    # Wait for the month dropdown to be present and select a value
+    month_dropdown = WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "select[title='Month:']"))
+    )
+    month_select = Select(month_dropdown)
+    month_select.select_by_value(str(month))  # Change to desired month
 
-WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='react-root']/section/main/div/div/div[1]/div/div[6]/button"))).click()
+    # Wait for the day dropdown to be present and select a value
+    day_dropdown = WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "select[title='Day:']"))
+    )
+    day_select = Select(day_dropdown)
+    day_select.select_by_value(str(day))  # Change to desired day
+
+    # Wait for the year dropdown to be present and select a value
+    year_dropdown = WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "select[title='Year:']"))
+    )
+    year_select = Select(year_dropdown)
+    year_select.select_by_value(str(year))  # Change to desired year
+
+    print("Selected random date of birth.")
+
+except Exception as e:
+    print(f"An error occurred: {e}")
+    
+    
+next_button = WebDriverWait(driver, 30).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[text()='Next' and @type='button']"))
+    )
+next_button.click()
 time.sleep(3)
 #
 fMail = fake_email[0].split("@")
